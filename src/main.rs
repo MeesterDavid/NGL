@@ -23,7 +23,7 @@ fn main() {
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
-    let renderer = Renderer::new().expect("Cannot create renderer");
+    let mut renderer = Renderer::new().expect("Cannot create renderer");
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 

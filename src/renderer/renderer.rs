@@ -1,22 +1,59 @@
 use crate::renderer::buffer::Buffer;
 use crate::renderer::program::ShaderProgram;
 use crate::renderer::shader::{Shader, ShaderError};
-use crate::renderer::texture::Texture;
 use crate::renderer::vertex_array::VertexArray;
 use crate::set_attribute;
 use image::ImageError;
-use std::path::Path;
 use std::ptr;
 use thiserror::Error;
+use ultraviolet::Mat4;
+use std::time::Instant;
+
+/// Takes a string literal and concatenates a null byte onto the end.
+#[macro_export]
+macro_rules! null_str {
+  ($lit:literal) => {{
+    // "type check" the input
+    const _: &str = $lit;
+    concat!($lit, "\0")
+  }};
+}
+
+
+
+pub fn get_error(message: &str) {
+    let error: u32;
+    unsafe {
+        error = gl::GetError();
+    }
+
+    println!("{}\t{}", message,
+    match error {
+        gl::INVALID_ENUM => "invalid enum",
+        gl::INVALID_VALUE => "invalid value",
+        gl::INVALID_OPERATION => "invalid operation",
+        gl::INVALID_FRAMEBUFFER_OPERATION => "invalid framebuffer operation",
+        gl::OUT_OF_MEMORY => "out of memory",
+        gl::NO_ERROR => "no error",
+        _ => "?"
+
+    });
+    
+    if error != gl::NO_ERROR {
+        std::process::exit(1);
+    }
+}
 
 const VERTEX_SHADER_SOURCE: &str = r#"
 #version 330
+uniform mat4 transform;
+
 in vec3 position;
 in vec3 color;
 out vec3 vertexColor;
 
 void main() {
-    gl_Position = vec4(position, 1.0);
+    gl_Position = transform * vec4(position, 1.0);
     vertexColor = color;
 }
 "#;
@@ -37,6 +74,7 @@ type Color = [f32; 3];
 #[repr(C, packed)]
 struct Vertex(Pos, Color);
 type TriIndex = [u32; 3];
+
 
 #[rustfmt::skip]
 const VERTICES: [Vertex; 4] = [
@@ -86,6 +124,8 @@ pub struct Renderer {
     _vertex_buffer: Buffer,
     _index_buffer: Buffer,
     vertex_array: VertexArray,
+    start_time: Instant,
+    angle: f32,
     // texture0: Texture,
     // texture1: Texture,
 }
@@ -93,6 +133,9 @@ pub struct Renderer {
 impl Renderer {
     pub fn new() -> Result<Self, RendererInitError> {
         unsafe {
+            let start_time = Instant::now();
+            let angle = 1.0;
+
             let vertex_shader = Shader::new(VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER)?;
             let fragment_shader = Shader::new(FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER)?;
             let program = ShaderProgram::new(&[vertex_shader, fragment_shader])?;
@@ -131,21 +174,36 @@ impl Renderer {
                 _vertex_buffer: vertex_buffer,
                 _index_buffer: index_buffer,
                 vertex_array,
+                start_time,
+                angle,
                 // texture0,
                 // texture1,
             })
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(& mut self) {
         unsafe {
             gl::ClearColor(0.5, 0.5, 0.5, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
             // self.texture0.activate(gl::TEXTURE0);
             // self.texture1.activate(gl::TEXTURE1);
                 // update the "world state".
-            // let time = sdl.get_ticks() as f32 / 1000.0_f32;
-            // let transform = Mat4::from_rotation_z(time);
+            //let time =  self.start_time.elapsed().as_secs_f32() / 1000.0_f32;
+            self.angle += 1.0;
+            let transform = Mat4::from_rotation_z(self.angle);
+
+            let transform_name: *const i8 = null_str!("transform").as_ptr().cast();
+
+            get_error("na transform name");
+
+            let transform_loc = gl::GetUniformLocation(self.program.id, transform_name);
+
+            get_error("na get uniform location");
+            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform.as_ptr());
+
+            get_error("na uniform matrix");
+
             self.program.apply();
             self.vertex_array.bind();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
