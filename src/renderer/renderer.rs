@@ -3,6 +3,7 @@ use crate::renderer::program::ShaderProgram;
 use crate::renderer::shader::{Shader, ShaderError};
 use crate::renderer::vertex_array::VertexArray;
 use crate::set_attribute;
+use gl::CullFace;
 use image::ImageError;
 use std::ptr;
 use thiserror::Error;
@@ -54,7 +55,7 @@ in vec3 color;
 out vec3 vertexColor;
 
 void main() {
-    gl_Position = (transform + y_transform) * vec4(position, 1.0);
+    gl_Position = (y_transform * transform) * vec4(position, 1.0);
     vertexColor = color;
 }
 "#;
@@ -79,18 +80,18 @@ type TriIndex = [u32; 3];
 
 #[rustfmt::skip]
 const VERTICES: [Vertex; 4] = [
-    Vertex([-0.0,  1.0,  0.0],  [0.0, 1.0, 0.0]),
-    Vertex([-1.0,  0.0, -1.0],  [1.0, 1.0, 0.0]),
-    Vertex([ 1.0,  0.0,  0.0],  [1.0, 0.0, 1.0]),
-    Vertex([ 0.0,  0.0,  1.0],  [1.0, 1.0, 0.0]),
+    Vertex([-0.0,  0.5,  0.0],  [0.0, 1.0, 0.0]),
+    Vertex([ 0.25,  0.0,  0.25],  [1.0, 0.0, 0.0]),
+    Vertex([ 0.0,  0.0, -0.25],  [0.0, 0.0, 1.0]),
+    Vertex([-0.25, -0.0, -0.0],  [0.0, 0.0, 0.0]),
 ];
 
 
 #[rustfmt::skip]
 const INDICES: [TriIndex; 4] = [
-    [0, 1, 2],
+    [0, 2, 1],
     [0, 3, 2],
-    [0, 1, 3],
+    [0, 3, 1],
     [1, 2, 3],
 ];
 
@@ -197,7 +198,8 @@ impl Renderer {
             let time =  self.start_time.elapsed().as_secs_f32();
 
             println!("time: {}", time);
-
+            
+            gl::Disable(gl::CULL_FACE);
             let transform = Mat4::from_rotation_z(time);
             let y_transform = Mat4::from_rotation_y(time);
 
@@ -213,13 +215,13 @@ impl Renderer {
 
             let transform_ptr: *const f32 = transform.as_ptr();
             let y_transform_ptr: *const f32 = y_transform.as_ptr();
-
+            
             // let test: [gl::types::GLfloat; 16] = [
-            //     -0.4, 0.9, 0.0, 0.0, 
-            //     -0.9, -0.4, 0.0, 0.0, 
-            //     0.0, 0.0, 1.0, 0.0, 
-            //     0.0, 0.0, 0.0, 1.0
-            // ];
+                //     -0.4, 0.9, 0.0, 0.0, 
+                //     -0.9, -0.4, 0.0, 0.0, 
+                //     0.0, 0.0, 1.0, 0.0, 
+                //     0.0, 0.0, 0.0, 1.0
+                // ];
 
             get_error("na get uniform location");
             gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform_ptr);
