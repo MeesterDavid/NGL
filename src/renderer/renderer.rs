@@ -47,13 +47,14 @@ pub fn get_error(message: &str) {
 const VERTEX_SHADER_SOURCE: &str = r#"
 #version 330
 uniform mat4 transform;
+uniform mat4 y_transform;
 
 in vec3 position;
 in vec3 color;
 out vec3 vertexColor;
 
 void main() {
-    gl_Position = transform * vec4(position, 1.0);
+    gl_Position = (transform + y_transform) * vec4(position, 1.0);
     vertexColor = color;
 }
 "#;
@@ -198,16 +199,20 @@ impl Renderer {
             println!("time: {}", time);
 
             let transform = Mat4::from_rotation_z(time);
+            let y_transform = Mat4::from_rotation_y(time);
 
             self.program.apply();
             let transform_name: *const i8 = (null_str!("transform")).as_ptr().cast();
+            let y_transform_name: *const i8 = (null_str!("y_transform")).as_ptr().cast();
 
             get_error("na transform name");
 
             let transform_loc = gl::GetUniformLocation(self.program.id, transform_name);
+            let y_transform_loc = gl::GetUniformLocation(self.program.id, y_transform_name);
             // // //let transform: *const f32 = []
 
             let transform_ptr: *const f32 = transform.as_ptr();
+            let y_transform_ptr: *const f32 = y_transform.as_ptr();
 
             // let test: [gl::types::GLfloat; 16] = [
             //     -0.4, 0.9, 0.0, 0.0, 
@@ -218,6 +223,7 @@ impl Renderer {
 
             get_error("na get uniform location");
             gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform_ptr);
+            gl::UniformMatrix4fv(y_transform_loc, 1, gl::FALSE, y_transform_ptr);
 
             get_error("na uniform matrix");
 
