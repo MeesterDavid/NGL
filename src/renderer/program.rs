@@ -1,5 +1,6 @@
 use crate::renderer::shader::{Shader, ShaderError};
 use gl::types::*;
+use ultraviolet::Mat4;
 use std::ffi::CString;
 
 pub struct ShaderProgram {
@@ -63,4 +64,13 @@ impl ShaderProgram {
         gl::Uniform1i(gl::GetUniformLocation(self.id, uniform.as_ptr()), value);
         Ok(())
     }
+
+    pub unsafe fn set_mat4_uniform(&self, name: &str, transform: Mat4) -> Result<(), ShaderError> {
+        self.apply();
+        let uniform = CString::new(name)?;
+        gl::Uniform4fv(gl::GetUniformLocation(self.id, uniform.as_ptr()), 1, transform.as_ptr().cast());
+        Ok(())
+
+    }
+
 }

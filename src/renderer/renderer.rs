@@ -78,19 +78,19 @@ type TriIndex = [u32; 3];
 
 #[rustfmt::skip]
 const VERTICES: [Vertex; 4] = [
-    Vertex([-0.0, -0.0,  0.5],  [0.0, 1.0, 0.0]),
-    Vertex([ 0.2, -0.0,  0.0],  [1.0, 1.0, 0.0]),
-    Vertex([-0.2, -0.2,  0.0],  [1.0, 0.0, 1.0]),
-    Vertex([-0.2,  0.2,  0.0],  [1.0, 1.0, 0.0]),
+    Vertex([-0.0,  1.0,  0.0],  [0.0, 1.0, 0.0]),
+    Vertex([-1.0,  0.0, -1.0],  [1.0, 1.0, 0.0]),
+    Vertex([ 1.0,  0.0,  0.0],  [1.0, 0.0, 1.0]),
+    Vertex([ 0.0,  0.0,  1.0],  [1.0, 1.0, 0.0]),
 ];
 
 
 #[rustfmt::skip]
 const INDICES: [TriIndex; 4] = [
     [0, 1, 2],
-    [2, 3, 0],
-    [0, 3, 1],
-    [1, 3, 2],
+    [0, 3, 2],
+    [0, 1, 3],
+    [1, 2, 3],
 ];
 
 // #[rustfmt::skip]
@@ -185,28 +185,50 @@ impl Renderer {
     pub fn draw(& mut self) {
         unsafe {
             gl::ClearColor(0.5, 0.5, 0.5, 1.0);
+            get_error("na clear color");
+
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            get_error("na clear");
+
             // self.texture0.activate(gl::TEXTURE0);
             // self.texture1.activate(gl::TEXTURE1);
                 // update the "world state".
-            //let time =  self.start_time.elapsed().as_secs_f32() / 1000.0_f32;
-            self.angle += 1.0;
-            let transform = Mat4::from_rotation_z(self.angle);
+            let time =  self.start_time.elapsed().as_secs_f32();
 
-            let transform_name: *const i8 = null_str!("transform").as_ptr().cast();
+            println!("time: {}", time);
+
+            let transform = Mat4::from_rotation_z(time);
+
+            self.program.apply();
+            let transform_name: *const i8 = (null_str!("transform")).as_ptr().cast();
 
             get_error("na transform name");
 
             let transform_loc = gl::GetUniformLocation(self.program.id, transform_name);
+            // // //let transform: *const f32 = []
+
+            let transform_ptr: *const f32 = transform.as_ptr();
+
+            // let test: [gl::types::GLfloat; 16] = [
+            //     -0.4, 0.9, 0.0, 0.0, 
+            //     -0.9, -0.4, 0.0, 0.0, 
+            //     0.0, 0.0, 1.0, 0.0, 
+            //     0.0, 0.0, 0.0, 1.0
+            // ];
 
             get_error("na get uniform location");
-            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform.as_ptr());
+            gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform_ptr);
 
             get_error("na uniform matrix");
 
-            self.program.apply();
+            // self.program.apply();
             self.vertex_array.bind();
+
+            get_error("na vertex bind");
+
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            get_error("na draw elements");
+
         }
     }
 }

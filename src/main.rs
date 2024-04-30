@@ -25,20 +25,32 @@ fn main() {
 
     let mut renderer = Renderer::new().expect("Cannot create renderer");
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        // *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::LoopDestroyed => (),
+            Event::LoopDestroyed => {
+                println!("Loop DESTROYED");
+            },
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::Resized(physical_size) => gl_context.resize(physical_size),
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),
             },
             Event::RedrawRequested(_) => {
+                println!("Event: Redraw Requested");
+                // renderer.draw();
+                // gl_context.swap_buffers().unwrap();
+            }
+            Event::MainEventsCleared => {
+                println!("Event: MainEventsCleared");
+
                 renderer.draw();
                 gl_context.swap_buffers().unwrap();
+
             }
-            _ => (),
+            _ => {
+                println!("No matching event in event loop");
+            },
         }
     });
 }
