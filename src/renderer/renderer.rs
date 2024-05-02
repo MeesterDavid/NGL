@@ -3,11 +3,10 @@ use crate::renderer::program::ShaderProgram;
 use crate::renderer::shader::{Shader, ShaderError};
 use crate::renderer::vertex_array::VertexArray;
 use crate::set_attribute;
-use gl::CullFace;
+use std::{ptr, str};
 use image::ImageError;
-use std::ptr;
 use thiserror::Error;
-use ultraviolet::Mat4;
+use ultraviolet::{mat,vec};
 use std::time::Instant;
 
 /// Takes a string literal and concatenates a null byte onto the end.
@@ -49,13 +48,15 @@ const VERTEX_SHADER_SOURCE: &str = r#"
 #version 330
 uniform mat4 transform;
 uniform mat4 y_transform;
+uniform mat4 view;
+uniform mat4 projection;
 
 in vec3 position;
 in vec3 color;
 out vec3 vertexColor;
 
 void main() {
-    gl_Position = (y_transform * transform) * vec4(position, 1.0);
+    gl_Position = projection * view * (y_transform * transform) * vec4(position, 1.0);
     vertexColor = color;
 }
 "#;
@@ -81,8 +82,8 @@ type TriIndex = [u32; 3];
 #[rustfmt::skip]
 const VERTICES: [Vertex; 4] = [
     Vertex([-0.0,  0.5,  0.0],  [0.0, 1.0, 0.0]),
-    Vertex([ 0.25,  0.0,  0.25],  [1.0, 0.0, 0.0]),
-    Vertex([ 0.0,  0.0, -0.25],  [0.0, 0.0, 1.0]),
+    Vertex([ 0.25,  0.0, -0.25],  [1.0, 0.0, 0.0]),
+    Vertex([ 0.0,  0.0, 0.25],  [0.0, 0.0, 1.0]),
     Vertex([-0.25, -0.0, -0.0],  [0.0, 0.0, 0.0]),
 ];
 
@@ -199,34 +200,53 @@ impl Renderer {
 
             println!("time: {}", time);
             
-            gl::Disable(gl::CULL_FACE);
-            let transform = Mat4::from_rotation_z(time);
-            let y_transform = Mat4::from_rotation_y(time);
-
             self.program.apply();
+            //gl::Disable(gl::CULL_FACE);
+            let transform = mat::Mat4::from_rotation_z(time);
             let transform_name: *const i8 = (null_str!("transform")).as_ptr().cast();
-            let y_transform_name: *const i8 = (null_str!("y_transform")).as_ptr().cast();
-
-            get_error("na transform name");
-
             let transform_loc = gl::GetUniformLocation(self.program.id, transform_name);
-            let y_transform_loc = gl::GetUniformLocation(self.program.id, y_transform_name);
-            // // //let transform: *const f32 = []
-
-            let transform_ptr: *const f32 = transform.as_ptr();
-            let y_transform_ptr: *const f32 = y_transform.as_ptr();
-            
-            // let test: [gl::types::GLfloat; 16] = [
-                //     -0.4, 0.9, 0.0, 0.0, 
-                //     -0.9, -0.4, 0.0, 0.0, 
-                //     0.0, 0.0, 1.0, 0.0, 
-                //     0.0, 0.0, 0.0, 1.0
-                // ];
-
             get_error("na get uniform location");
+            let transform_ptr: *const f32 = transform.as_ptr();
             gl::UniformMatrix4fv(transform_loc, 1, gl::FALSE, transform_ptr);
+            get_error("na uniform matrix");
+            
+            let y_transform = mat::Mat4::from_rotation_y(time);
+            let y_transform_name: *const i8 = (null_str!("y_transform")).as_ptr().cast();
+            let y_transform_loc = gl::GetUniformLocation(self.program.id, y_transform_name);
+            get_error("na get uniform location");
+            let y_transform_ptr: *const f32 = y_transform.as_ptr();
             gl::UniformMatrix4fv(y_transform_loc, 1, gl::FALSE, y_transform_ptr);
+            get_error("na uniform matrix");
 
+            let view_transform = mat::Mat4::from_translation(vec::Vec3{x: 1.0, y: 1.0, z: -3.0});
+            let view_transform_name: *const i8 = (null_str!("view")).as_ptr().cast();
+            let view_transform_loc = gl::GetUniformLocation(self.program.id, view_transform_name);
+            get_error("na get uniform location");
+            let view_transform_ptr: *const f32 = view_transform.as_ptr();
+
+            gl::UniformMatrix4fv(view_transform_loc, 1, gl::FALSE, view_transform_ptr);
+            get_error("na uniform matrix");
+
+            let view_transform = mat::Mat4::from_translation(vec::Vec3::new(1.0, 1.0, -3.0));
+            let view_transform_name: *const i8 = (null_str!("view")).as_ptr().cast();
+            let view_transform_loc = gl::GetUniformLocation(self.program.id, view_transform_name);
+            get_error("na get uniform location");
+            let view_transform_ptr: *const f32 = view_transform.as_ptr();
+
+            gl::UniformMatrix4fv(view_transform_loc, 1, gl::FALSE, view_transform_ptr);
+            get_error("na uniform matrix");
+
+            let projection_transform = ultraviolet::projection::perspective_gl(
+                45.0_f32.to_radians(),
+                (800 as f32) / (600 as f32),
+                0.1,
+                100.0,
+            );
+            let projection_transform_name: *const i8 = (null_str!("projection")).as_ptr().cast();
+            let projection_transform_loc = gl::GetUniformLocation(self.program.id, projection_transform_name);
+            get_error("na get uniform location");
+            let projection_transform_ptr: *const f32 = projection_transform.as_ptr();
+            gl::UniformMatrix4fv(projection_transform_loc, 1, gl::FALSE, projection_transform_ptr);
             get_error("na uniform matrix");
 
             // self.program.apply();
@@ -234,7 +254,7 @@ impl Renderer {
 
             get_error("na vertex bind");
 
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES, 4, gl::UNSIGNED_INT, ptr::null());
             get_error("na draw elements");
 
         }
