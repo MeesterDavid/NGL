@@ -218,16 +218,7 @@ impl Renderer {
             gl::UniformMatrix4fv(y_transform_loc, 1, gl::FALSE, y_transform_ptr);
             get_error("na uniform matrix");
 
-            let view_transform = mat::Mat4::from_translation(vec::Vec3{x: 1.0, y: 1.0, z: -3.0});
-            let view_transform_name: *const i8 = (null_str!("view")).as_ptr().cast();
-            let view_transform_loc = gl::GetUniformLocation(self.program.id, view_transform_name);
-            get_error("na get uniform location");
-            let view_transform_ptr: *const f32 = view_transform.as_ptr();
-
-            gl::UniformMatrix4fv(view_transform_loc, 1, gl::FALSE, view_transform_ptr);
-            get_error("na uniform matrix");
-
-            let view_transform = mat::Mat4::from_translation(vec::Vec3::new(1.0, 1.0, -3.0));
+            let view_transform = mat::Mat4::from_translation(vec::Vec3{x: 0.0, y: 0.0, z: -3.0});
             let view_transform_name: *const i8 = (null_str!("view")).as_ptr().cast();
             let view_transform_loc = gl::GetUniformLocation(self.program.id, view_transform_name);
             get_error("na get uniform location");
@@ -254,7 +245,7 @@ impl Renderer {
 
             get_error("na vertex bind");
 
-            gl::DrawElements(gl::TRIANGLES, 4, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES, 16, gl::UNSIGNED_INT, ptr::null());
             get_error("na draw elements");
 
         }
